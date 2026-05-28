@@ -1,5 +1,5 @@
-# 1. استخدام نظام تشغيل مجهز بالجافا لتشغيل ماين كرافت
-FROM eclipse-temurin:17-jre
+# 1. ترقية الجافا إلى إصدار 25 المطلوب للتحديث الجديد
+FROM eclipse-temurin:25-jre
 
 # 2. تثبيت أداة تحميل الملفات من الإنترنت
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
