@@ -1,17 +1,17 @@
-# استخدام أحدث نسخة مستقرة من صورة ماين كرافت المدعومة بجافا
-FROM itzg/minecraft-server:latest
+# Use Java 21 LTS which is perfectly stable and optimized for Minecraft 1.21.11
+FROM itzg/minecraft-server:java21
 
-# الموافقة على شروط اتفاقية الاستخدام EULA (مطلوب لتشغيل السيرفر)
+# Accept the Minecraft End User License Agreement (EULA)
 ENV EULA=TRUE
 
-# تحديد نوع السيرفر (ينصح بـ PAPER لضمان أفضل أداء لمنع الـ Lag في سيرفرات SMP)
+# Use PaperMC engine for best performance and lag reduction in SMP servers
 ENV TYPE=PAPER
 
-# تحديد إصدار اللعبة (LATEST يعتمد أحدث إصدار مستقر تلقائياً)
-ENV VERSION=LATEST
+# Strictly lock the Minecraft server version to 1.21.11
+ENV VERSION=1.21.11
 
-# نص رسالة الترحيب التي تظهر للاعبين في القائمة (MOTD) مع ألوان مخصصة
-ENV MOTD="§6§lNovaSMP §7- §bOfficial Java Survival Server"
+# Set the Server Message of the Day (MOTD) with custom colors
+ENV MOTD="§6§lNovaSMP §7- §bOfficial 1.21.11 Survival"
 
-# فتح المنفذ الافتراضي لماين كرافت جافا
+# Expose the default Minecraft Java Edition port
 EXPOSE 25565
