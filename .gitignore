@@ -13,9 +13,3 @@ logs/
 world/
 world_nether/
 world_the_end/
-
-# ⚠️ تحذير أمني هام جداً: تجاهل ملفات التوكن والبيانات السرية
-# هذا يمنع أي شخص من سرقة حساب أو اتصال سيرفرك الخاص
-plugins/playit-gg/bin/
-plugins/playit-gg/playit.toml
-plugins/playit-gg/secret.json
