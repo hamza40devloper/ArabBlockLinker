@@ -2,7 +2,7 @@ FROM itzg/minecraft-server:latest
 
 ENV EULA=TRUE
 ENV TYPE=PAPER
-ENV VERSION=LATEST
+ENV VERSION="1.21.11"
 ENV SERVER_NAME="NovaSMP"
 ENV MOTD="§6§lNovaSMP §7- §bOfficial Java Survival Server"
 ENV MODE=survival
