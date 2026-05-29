@@ -1,17 +1,23 @@
-# Use Java 21 LTS which is perfectly stable and optimized for Minecraft 1.21.11
-FROM itzg/minecraft-server:java21
+# استخدام أفضل صورة Docker جاهزة لخوادم ماين كرافت
+FROM itzg/minecraft-server:latest
 
-# Accept the Minecraft End User License Agreement (EULA)
+# الموافقة الإلزامية على اتفاقية استخدام ماين كرافت (بدونها لن يعمل السيرفر)
 ENV EULA=TRUE
 
-# Use PaperMC engine for best performance and lag reduction in SMP servers
+# تعيين نوع السيرفر إلى Paper (أفضل بكثير من Vanilla من حيث الأداء ودعم الإضافات)
 ENV TYPE=PAPER
 
-# Strictly lock the Minecraft server version to 1.21.11
-ENV VERSION=1.21.11
+# استخدام أحدث إصدار متوفر للعبة
+ENV VERSION=LATEST
 
-# Set the Server Message of the Day (MOTD) with custom colors
-ENV MOTD="§6§lNovaSMP §7- §bOfficial 1.21.11 Survival"
+# تعيين اسم السيرفر كما طلبت
+ENV SERVER_NAME="NovaSMP"
 
-# Expose the default Minecraft Java Edition port
+# رسالة الترحيب التي ستظهر للاعبين في قائمة السيرفرات (MOTD)
+ENV MOTD="Welcome to NovaSMP Server!"
+
+# تفعيل وضع النجاة (Survival) بما أنه سيرفر SMP
+ENV MODE=survival
+
+# تحديد المنفذ الافتراضي للعبة
 EXPOSE 25565
