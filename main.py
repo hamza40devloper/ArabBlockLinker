@@ -2,55 +2,55 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import asyncio
 
+# 1. تحميل المتغيرات البيئية بأمان
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+if not TOKEN:
+    raise ValueError("❌ خطأ: لم يتم العثور على توكن البوت في ملف .env")
+
+# 2. إعداد الصلاحيات (Intents)
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+intents.message_content = True  # ضروري لقراءة رسائل الشات
+intents.members = True          # ضروري لإرسال رسائل خاصة (DM) في نظام الـ 2FA
+intents.guilds = True
 
-class ArabBlockBot(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix='!', intents=intents)
+# 3. تهيئة البوت
+bot = commands.Bot(command_prefix='/', intents=intents, help_command=None)
 
-    async def setup_hook(self):
-        # تحميل جميع ملفات النظام دفعة واحدة
-        cogs_to_load = [
-            'cogs.setup_cog',   # التثبيت
-            'cogs.admin_cog',   # قنوات الإدارة
-            'cogs.public_cog',  # المتجر واللوحة
-            'cogs.auth_cog'     # نظام الـ 2FA
-        ]
-        
-        for cog in cogs_to_load:
+# 4. دالة التحميل الديناميكي للـ Cogs
+async def load_cogs():
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py') and not filename.startswith('__'):
             try:
-                await self.load_extension(cog)
-                print(f"📦 تم تحميل: {cog}")
+                # اقتطاع امتداد .py لتحميل الوحدة
+                await bot.load_extension(f'cogs.{filename[:-3]}')
+                print(f"✅ Loaded: {filename}")
             except Exception as e:
-                print(f"❌ خطأ في تحميل {cog}: {e}")
-        
-        print("🔄 جاري مزامنة أوامر السلاش...")
-        await self.tree.sync()
-        print("✅ تمت المزامنة بنجاح!")
+                print(f"❌ Failed to load {filename}: {e}")
 
-bot = ArabBlockBot()
-
+# 5. أحداث البوت (Events)
 @bot.event
 async def on_ready():
-    print(f'===-----------------------------------------===')
-    print(f'✅ بوت ArabBlock يعمل الآن كـ: {bot.user.name}')
-    print(f'===-----------------------------------------===')
+    # مزامنة أوامر السلاش (Slash Commands) مع سيرفر الديسكورد
+    try:
+        synced = await bot.tree.sync()
+        print(f"🔄 Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(f"❌ Failed to sync commands: {e}")
+        
+    print('-----------------------------------------')
+    print(f'🚀 Engine Online! Logged in as {bot.user.name}')
+    # إضافة حالة احترافية (Presence)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="ArabBlock Server 🛡️"))
+
+# 6. نقطة الإطلاق (Entry Point)
+async def main():
+    async with bot:
+        await load_cogs()
+        await bot.start(TOKEN)
 
 if __name__ == '__main__':
-    if TOKEN:
-        bot.run(TOKEN)    print(f'✅ تم تسجيل الدخول باسم البوت: {bot.user.name}')
-    print(f'🌐 بوت ArabBlock يعمل الآن وطاقة الاتصال ممتازة!')
-    print(f'===-----------------------------------------===')
-
-# نقطة الانطلاق لتشغيل الكود بنجاح
-if __name__ == '__main__':
-    if TOKEN:
-        bot.run(TOKEN)
-    else:
-        print("❌ خطأ: لم يتم العثور على DISCORD_TOKEN! يرجى التأكد من ملف .env أو إعدادات منصة Railway.")
+    asyncio.run(main())
